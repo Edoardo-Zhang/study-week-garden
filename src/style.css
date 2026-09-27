@@ -1,0 +1,873 @@
+/* ==========================================================================
+   一周学习时间安排表 — 样式
+   设计基调：宫崎骏/吉卜力水彩风，浅色背景 + 上层简洁表格
+   ========================================================================== */
+
+:root {
+  /* 时间与天的尺寸 —— JS 读取同名常量，保证滑块与左侧时间轴对齐 */
+  --hour-height: 60px;
+  --start-hour: 6;
+  --end-hour: 23;
+
+  --day-count: 7;
+
+  --paper: rgba(255, 253, 247, 0.94);
+  --paper-solid: #fffdf7;
+  --paper-head: rgba(247, 246, 236, 0.96);
+  --line: rgba(96, 108, 84, 0.16);
+  --line-strong: rgba(96, 108, 84, 0.3);
+
+  --ink: #3b4436;
+  --ink-soft: #6b7563;
+  --ink-faint: #98a08d;
+
+  --accent: #4c8c6d;
+  --accent-deep: #35634c;
+  --accent-soft: #e4f0e7;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  --shadow-soft: 0 6px 24px rgba(59, 68, 54, 0.1);
+  --shadow-card: 0 14px 44px rgba(59, 68, 54, 0.16);
+
+  --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+    system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: #eef3ea;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+/* ---------- 背景层 ---------- */
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg-image {
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/bg.png");
+  background-size: cover;
+  background-position: center 62%;
+  background-repeat: no-repeat;
+  /* 宫崎骏手绘水彩质感：轻微提亮 + 一点饱和，让前景表格更透气 */
+  filter: saturate(1.06) brightness(1.03);
+  transform: scale(1.02);
+}
+
+.bg-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 80% at 50% 8%,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.44) 42%,
+      rgba(248, 251, 243, 0.62) 100%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(240, 246, 234, 0.66) 100%);
+}
+
+/* ---------- 应用层 ---------- */
+
+.app {
+  position: relative;
+  z-index: 2;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px 22px 64px;
+}
+
+.app-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #2f392b;
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.9);
+}
+
+.app-subtitle {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 按钮 ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, background 0.2s ease,
+    border-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #5ba37e 0%, #3f7a5b 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(63, 122, 91, 0.32);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, #66b089 0%, #478665 100%);
+  box-shadow: 0 8px 22px rgba(63, 122, 91, 0.4);
+}
+
+.btn-icon {
+  font-size: 17px;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink-soft);
+  border-color: var(--line-strong);
+  backdrop-filter: blur(6px);
+}
+
+.btn-ghost:hover {
+  background: #fff;
+  color: var(--accent-deep);
+  border-color: rgba(76, 140, 109, 0.5);
+}
+
+.btn-danger-ghost {
+  background: rgba(255, 255, 255, 0.82);
+  color: #b4553f;
+  border-color: rgba(180, 85, 63, 0.34);
+}
+
+.btn-danger-ghost:hover {
+  background: #fdf1ee;
+  border-color: rgba(180, 85, 63, 0.6);
+}
+
+/* ---------- 新建滑块面板 ---------- */
+
+.creator {
+  background: var(--paper);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px 14px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(12px);
+  animation: drop-in 0.26s ease;
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.creator-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.creator-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.creator-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 8px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.creator-close:hover {
+  color: #b4553f;
+  background: rgba(180, 85, 63, 0.09);
+}
+
+.creator-body {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) 150px minmax(200px, 1.4fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.03em;
+}
+
+.field input[type="text"],
+.field input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input[type="text"]:focus,
+.field input[type="number"]:focus {
+  border-color: rgba(76, 140, 109, 0.75);
+  box-shadow: 0 0 0 3px rgba(76, 140, 109, 0.15);
+}
+
+.color-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 40px;
+}
+
+.color-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(59, 68, 54, 0.2);
+  transition: transform 0.16s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.color-dot:hover {
+  transform: scale(1.12);
+}
+
+.color-dot.is-active {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 3px rgba(76, 140, 109, 0.35), 0 2px 8px rgba(59, 68, 54, 0.24);
+}
+
+.creator-submit {
+  height: 40px;
+  justify-content: center;
+}
+
+.creator-hint {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* ---------- 待安排区 ---------- */
+
+.tray {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px dashed rgba(76, 140, 109, 0.4);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.tray.is-drop-target {
+  background: rgba(228, 240, 231, 0.94);
+  border-color: rgba(76, 140, 109, 0.85);
+}
+
+.tray-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-deep);
+  padding-top: 7px;
+  white-space: nowrap;
+}
+
+.tray-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.tray-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1;
+  min-height: 42px;
+  align-items: center;
+}
+
+.tray-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ---------- 表格主体 ---------- */
+
+.board-wrap {
+  margin-top: 4px;
+}
+
+.board {
+  background: var(--paper);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 12px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.board-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  grid-template-rows: 54px minmax(0, 1fr);
+  max-height: min(74vh, 940px);
+}
+
+/* 表头 */
+.grid-head {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--paper-head);
+}
+
+.corner-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--line);
+}
+
+.corner-time {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+
+/* 表头里的天单元格由 JS 注入，这里定义容器 */
+.head-days {
+  display: grid;
+  grid-template-columns: repeat(var(--day-count), minmax(0, 1fr));
+}
+
+.head-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-left: 1px solid var(--line);
+  padding: 4px 2px;
+}
+
+.head-day:first-child {
+  border-left: none;
+}
+
+.head-day-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #37402f;
+  letter-spacing: 0.02em;
+}
+
+.head-day-sub {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+.head-day.is-today {
+  background: rgba(228, 240, 231, 0.9);
+}
+
+.head-day.is-today .head-day-name {
+  color: var(--accent-deep);
+}
+
+.head-day.is-today .head-day-sub {
+  color: var(--accent);
+}
+
+/* 时间轴列 —— 滚动容器，随天列同步滚动 */
+.grid-times {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  background: var(--paper-head);
+  border-right: 1px solid var(--line-strong);
+  overflow: hidden;
+}
+
+.time-slot-label {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.time-slot-label span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  transform: translateY(-7px);
+  letter-spacing: 0.02em;
+}
+
+.time-slot-label:first-child span {
+  transform: translateY(7px);
+}
+
+/* 7 天列 —— 同时作为滚动容器，滑块层挂在它内部，滚动时与时间轴保持同步 */
+.grid-days {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--day-count), minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.day-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+}
+
+.day-col:first-child {
+  border-left: none;
+}
+
+.hour-cell {
+  border-bottom: 1px solid var(--line);
+  transition: background 0.16s ease;
+}
+
+/* 每两小时更明显一些的横线 */
+.hour-cell.is-major {
+  border-bottom-color: var(--line-strong);
+}
+
+.hour-cell.is-hover {
+  background: rgba(228, 240, 231, 0.55);
+}
+
+/* 滑块层 —— 绝对定位铺满 7 天区域，随天列一起滚动
+   注意：横向不做 left/right 拉伸，宽度与偏移由 JS 按「天」精确计算，
+   保证滑块严格落在所属那一列内，并与左侧时间轴逐格对齐 */
+.blocks-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* ---------- 任务滑块 ---------- */
+
+.block {
+  position: absolute;
+  /* left / width 由 JS 按所属「天」注入（left: calc(day% + 内边距)），
+     这样滑块永远落在自己那一列里，横向不串列、纵向与时间轴对齐 */
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  overflow: hidden;
+  cursor: grab;
+  pointer-events: auto;
+  color: #2c3a30;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(59, 68, 54, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: box-shadow 0.2s ease, opacity 0.2s ease;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1px;
+}
+
+.block:hover {
+  box-shadow: 0 6px 18px rgba(59, 68, 54, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  z-index: 6;
+}
+
+.block:active {
+  cursor: grabbing;
+}
+
+.block-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.block-meta {
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 极短时长：只一行 */
+.block.is-tiny {
+  padding: 3px 8px;
+  justify-content: center;
+}
+
+.block.is-tiny .block-meta {
+  display: none;
+}
+
+.block.is-tiny .block-name {
+  font-size: 11.5px;
+}
+
+/* 拖动中 */
+.block.is-dragging {
+  opacity: 0.42;
+  cursor: grabbing;
+}
+
+.block.is-editing {
+  outline: 2px solid rgba(76, 140, 109, 0.75);
+  outline-offset: 1px;
+}
+
+/* 待安排区里的滑块恢复为普通流式排布 */
+.tray-list .block {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+  min-width: 132px;
+  max-width: 220px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+/* 拖动跟随的幽灵 */
+.drag-ghost {
+  position: fixed;
+  z-index: 999;
+  pointer-events: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #2c3a30;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 12px 30px rgba(59, 68, 54, 0.3);
+  transform: translate(-50%, -50%) rotate(-1.5deg);
+  opacity: 0.96;
+}
+
+/* 插入位置提示线 */
+.drop-hint {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(76, 140, 109, 0.9);
+  box-shadow: 0 0 10px rgba(76, 140, 109, 0.7);
+  pointer-events: none;
+  z-index: 8;
+  display: none;
+}
+
+/* ---------- 提示 ---------- */
+
+.board-hint {
+  margin: 12px 4px 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  text-align: center;
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+}
+
+/* ---------- 弹窗 ---------- */
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(47, 57, 43, 0.34);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fade-in 0.18s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  width: min(440px, 100%);
+  background: var(--paper-solid);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(47, 57, 43, 0.3);
+  overflow: hidden;
+  animation: pop-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.modal-foot-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: rgba(47, 57, 43, 0.92);
+  color: #f4f8f2;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(47, 57, 43, 0.34);
+  animation: toast-in 0.24s ease;
+  pointer-events: none;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ---------- 滚动条：细窄的浅色滚动条，不抢视觉 ---------- */
+
+.grid-times::-webkit-scrollbar,
+.grid-days::-webkit-scrollbar {
+  width: 8px;
+  height: 0;
+}
+
+.grid-times::-webkit-scrollbar-track,
+.grid-days::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.grid-times::-webkit-scrollbar-thumb,
+.grid-days::-webkit-scrollbar-thumb {
+  background: rgba(96, 108, 84, 0.26);
+  border-radius: 8px;
+}
+
+.grid-times::-webkit-scrollbar-thumb:hover,
+.grid-days::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 108, 84, 0.45);
+}
+
+/* 天列滚动条会遮挡内容，隐藏掉，滚动仍可通过时间轴或滚轮进行 */
+.grid-days::-webkit-scrollbar {
+  width: 0;
+}
+
+.board-inner {
+  overflow: hidden;
+}
+
+/* Firefox */
+.grid-times {
+  scrollbar-width: thin;
+}
+
+/* ---------- 响应式 ---------- */
+
+@media (max-width: 1080px) {
+  .creator-body {
+    grid-template-columns: 1fr 140px;
+  }
+  .field-color,
+  .creator-submit {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .app {
+    padding: 20px 12px 48px;
+  }
+  .app-title {
+    font-size: 23px;
+  }
+  .creator-body {
+    grid-template-columns: 1fr;
+  }
+  .board {
+    padding: 8px;
+  }
+  .board-inner,
+  .grid-head {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+  :root {
+    --hour-height: 54px;
+  }
+}

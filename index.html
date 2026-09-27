@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>一周学习时间安排表</title>
+  <meta name="description" content="宫崎骏风格的一周学习时间安排智能表格，支持创建任务滑块、拖拽排布、自动对齐时长。" />
+  <link rel="preload" as="image" href="./assets/bg.png" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <!-- 背景层：宫崎骏风格插画 -->
+  <div class="bg-layer">
+    <div class="bg-image"></div>
+    <div class="bg-veil"></div>
+  </div>
+
+  <!-- 前景应用层 -->
+  <div class="app">
+    <header class="app-header">
+      <div class="title-wrap">
+        <h1 class="app-title">一周学习时间安排表</h1>
+        <p class="app-subtitle">拖动滑块安排你的七天 · 长度自动匹配时长</p>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="btnCreate">
+          <span class="btn-icon">＋</span>
+          <span>创建任务滑块</span>
+        </button>
+        <button type="button" class="btn btn-ghost" id="btnDemo">示例安排</button>
+        <button type="button" class="btn btn-ghost" id="btnClear">清空</button>
+      </div>
+    </header>
+
+    <!-- 新建滑块面板 -->
+    <section class="creator" id="creator" hidden>
+      <div class="creator-head">
+        <span class="creator-title">新建任务滑块</span>
+        <button type="button" class="creator-close" id="btnCloseCreator" aria-label="关闭">×</button>
+      </div>
+
+      <div class="creator-body">
+        <label class="field field-task">
+          <span class="field-label">任务名称</span>
+          <input type="text" id="inputTask" placeholder="例如：高等数学复习" maxlength="24" />
+        </label>
+
+        <label class="field field-duration">
+          <span class="field-label">时长（分钟）</span>
+          <input type="number" id="inputDuration" value="60" min="15" max="360" step="15" />
+        </label>
+
+        <div class="field field-color">
+          <span class="field-label">颜色</span>
+          <div class="color-row" id="colorRow"></div>
+        </div>
+
+        <button type="button" class="btn btn-primary creator-submit" id="btnCreateConfirm">
+          创建滑块
+        </button>
+      </div>
+
+      <p class="creator-hint">
+        创建后滑块会出现在下方「待安排」区，把它拖进任意一天的时间格即可。
+      </p>
+    </section>
+
+    <!-- 待安排存放区 -->
+    <section class="tray" id="tray">
+      <div class="tray-label">
+        <span>待安排</span>
+        <span class="tray-count" id="trayCount">0</span>
+      </div>
+      <div class="tray-list" id="trayList">
+        <p class="tray-empty" id="trayEmpty">暂无待安排的任务，点击右上角「创建任务滑块」开始吧</p>
+      </div>
+    </section>
+
+    <!-- 表格主体 -->
+    <main class="board-wrap">
+      <div class="board" id="board">
+        <div class="board-inner" id="boardInner">
+          <!-- 表头 -->
+          <div class="grid-head">
+            <div class="corner-cell">
+              <span class="corner-time">时间</span>
+            </div>
+          </div>
+          <!-- 时间轴列（滚动容器，与天列同步） -->
+          <div class="grid-times" id="gridTimes"></div>
+          <!-- 7 天列（滚动容器；滑块层挂在其内部，随列滚动 -->
+          <div class="grid-days" id="gridDays">
+            <div class="blocks-layer" id="blocksLayer"></div>
+          </div>
+        </div>
+      </div>
+      <p class="board-hint">提示：拖动滑块到别的天或别的时段即可调整安排；点击滑块可编辑任务与时长。</p>
+    </main>
+  </div>
+
+  <!-- 编辑弹窗 -->
+  <div class="modal-mask" id="modalMask" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <span class="modal-title">编辑任务</span>
+        <button type="button" class="creator-close" id="btnCloseModal" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field">
+          <span class="field-label">任务名称</span>
+          <input type="text" id="editTask" maxlength="24" />
+        </label>
+        <label class="field">
+          <span class="field-label">时长（分钟）</span>
+          <input type="number" id="editDuration" min="15" max="360" step="15" />
+        </label>
+        <div class="field">
+          <span class="field-label">颜色</span>
+          <div class="color-row" id="editColorRow"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-danger-ghost" id="btnDelete">删除</button>
+        <div class="modal-foot-right">
+          <button type="button" class="btn btn-ghost" id="btnCancelEdit">取消</button>
+          <button type="button" class="btn btn-primary" id="btnSaveEdit">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="./src/app.js"></script>
+</body>
+</html>
