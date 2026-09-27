@@ -692,6 +692,11 @@ input {
   text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
 }
 
+/* hidden 属性必须真正隐藏：.modal-mask 设了 display:flex，会盖掉浏览器的 [hidden]{display:none} */
+[hidden] {
+  display: none !important;
+}
+
 /* ---------- 弹窗 ---------- */
 
 .modal-mask {
