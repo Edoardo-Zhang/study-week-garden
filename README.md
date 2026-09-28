@@ -58,6 +58,6 @@ powershell -ExecutionPolicy Bypass -File tools\build.ps1
 - 数据只存在本机（浏览器 localStorage / 应用自己的本地存储），**不联网、不同步**；强制结束进程或断电可能丢失最近几秒的改动
 - 时间轴固定 06:00–24:00，暂时不可配置
 
-## 说明
+## 许可证
 
-个人学习用的小工具，代码随意参考。
+[MIT](LICENSE) © 2026 Edoardo-Zhang —— 可以自由使用、修改、再发布，保留版权声明即可。
