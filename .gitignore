@@ -1,0 +1,9 @@
+# 桌面版工程（源码保留，构建产物与依赖不进仓库）
+desktop/node_modules/
+desktop/dist/
+desktop/app/
+
+# 系统杂物
+Thumbs.db
+Desktop.ini
+.DS_Store

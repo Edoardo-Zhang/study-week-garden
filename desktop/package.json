@@ -1,0 +1,61 @@
+{
+  "name": "study-week-garden",
+  "productName": "一周学习时间安排表",
+  "version": "1.0.0",
+  "description": "一周学习时间安排表 桌面版（离线可用）",
+  "main": "main.js",
+  "author": "Edoardo-Zhang",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "stage": "node scripts/stage.mjs",
+    "start": "npm run stage && electron .",
+    "dist": "npm run stage && electron-builder --win nsis zip --x64"
+  },
+  "devDependencies": {
+    "electron": "40.10.2",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.edoardo.studyweekgarden",
+    "productName": "一周学习时间安排表",
+    "copyright": "Copyright © 2026 Edoardo-Zhang",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
+    "artifactName": "study-week-garden-${version}-win-${arch}.${ext}",
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "一周学习时间安排表",
+      "artifactName": "study-week-garden-Setup-${version}.${ext}"
+    }
+  }
+}
