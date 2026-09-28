@@ -8,7 +8,6 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_TITLE = '一周学习时间安排表';
-const ONLINE_URL = 'https://www.qianqizhang.dpdns.org/';
 const INDEX = path.join(__dirname, 'app', 'index.html');
 
 let mainWindow = null;
@@ -37,11 +36,7 @@ function buildMenu() {
   const template = [
     {
       label: '文件',
-      submenu: [
-        { label: '打开在线版（浏览器）', click: () => shell.openExternal(ONLINE_URL) },
-        { type: 'separator' },
-        { label: '退出', role: 'quit' },
-      ],
+      submenu: [{ label: '退出', role: 'quit' }],
     },
     {
       label: '视图',
@@ -66,7 +61,7 @@ function buildMenu() {
               type: 'info',
               title: '关于',
               message: APP_TITLE + ' 桌面版 v' + app.getVersion(),
-              detail: '离线可用的一周学习时间安排表。\n\n在线版：' + ONLINE_URL + '\n所有数据只存在本机内存里，不上传、不联网。',
+              detail: '离线可用的一周学习时间安排表。\n\n所有数据只存在本机内存里，不上传、不联网；关闭应用后安排不会保留。',
               buttons: ['好'],
             });
           },

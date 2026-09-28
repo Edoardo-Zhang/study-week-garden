@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$Version = '1.0.0',
   [string]$Owner = 'Edoardo-Zhang',
   [string]$Repo  = 'study-week-garden',
@@ -30,7 +30,6 @@ if (-not $token) { Write-Host '[release] 取不到 GitHub 令牌'; exit 1 }
 $notes = '## 一周学习时间安排表 · 桌面版 v' + $Version + $nl + $nl
 $notes += '- 完全离线可用（站点文件打包在应用内，不联网、不依赖域名）' + $nl
 $notes += '- 双击安装包安装，或下载 zip 解压后直接运行' + $nl
-$notes += '- 在线版：https://www.qianqizhang.dpdns.org/' + $nl + $nl
 $notes += '### 校验值（SHA256）' + $nl + $nl
 foreach ($a in $assets) { $notes += '- ' + $a.Name + '  `' + (Get-FileHash $a.FullName -Algorithm SHA256).Hash + '`' + $nl }
 $notes += $nl + '### 注意' + $nl + $nl
