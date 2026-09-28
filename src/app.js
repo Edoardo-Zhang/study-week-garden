@@ -54,6 +54,78 @@
   var pickedColor = COLORS[0].bg;
   var editingColor = COLORS[0].bg;
 
+  /* --------------------------- 本机自动保存 --------------------------- */
+
+  var STORE_KEY = "study-week-garden:v1";
+  var saveWarned = false;
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        v: 1,
+        savedAt: new Date().toISOString(),
+        seq: seq,
+        tasks: tasks.map(function (t) {
+          return { id: t.id, name: t.name, color: t.color, duration: t.duration, day: t.day, start: t.start };
+        })
+      }));
+    } catch (e) {
+      if (!saveWarned) {
+        saveWarned = true;
+        toast("这台机器的浏览器不允许本地保存，安排不会被记住");
+      }
+    }
+  }
+
+  function loadState() {
+    var raw = null;
+    try {
+      raw = localStorage.getItem(STORE_KEY);
+    } catch (e) {
+      return null;
+    }
+    if (!raw) return null;
+    try {
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.tasks)) throw new Error("bad shape");
+      return d;
+    } catch (e) {
+      // 数据坏了就当没有，顺手清掉，免得每次启动都报错
+      try { localStorage.removeItem(STORE_KEY); } catch (e2) {}
+      return null;
+    }
+  }
+
+  function restoreState() {
+    var d = loadState();
+    if (!d) return false;
+
+    var restored = [];
+    var maxSeq = 0;
+    for (var i = 0; i < d.tasks.length; i++) {
+      var s = d.tasks[i];
+      if (!s || typeof s.name !== "string" || !s.name.trim()) continue;
+      var dur = parseInt(s.duration, 10);
+      if (isNaN(dur)) continue;
+      var n = parseInt(String(s.id || "").replace(/^t/, ""), 10);
+      if (!isNaN(n) && n > maxSeq) maxSeq = n;
+      restored.push({
+        id: typeof s.id === "string" && s.id ? s.id : "t" + (restored.length + 1),
+        name: s.name.slice(0, 24),
+        color: typeof s.color === "string" ? s.color : COLORS[0].bg,
+        duration: clamp(dur, MIN_DURATION, MAX_DURATION),
+        day: clamp(parseInt(s.day, 10) || 0, 0, DAYS.length),
+        start: snapHour(typeof s.start === "number" && isFinite(s.start) ? s.start : cfg.startHour)
+      });
+    }
+    if (!restored.length) return false;
+
+    tasks = restored;
+    seq = Math.max(parseInt(d.seq, 10) || 0, maxSeq + 1);
+    return true;
+  }
+
+
   /* ------------------------------ DOM ------------------------------ */
 
   var $ = function (id) {
@@ -326,6 +398,9 @@
     for (var k = 0; k < all.length; k++) bindBlockEvents(all[k]);
     var trayBlocks = el.trayList.querySelectorAll(".block");
     for (var m = 0; m < trayBlocks.length; m++) bindBlockEvents(trayBlocks[m]);
+
+    // 所有改动都会走到 render()，在这里统一落盘
+    saveState();
   }
 
   /* ----------------------------- 数据操作 ----------------------------- */
@@ -852,6 +927,7 @@
     renderColorRow(el.colorRow, pickedColor, pickNew);
 
     bindEvents();
+    if (restoreState()) toast("已恢复上次的安排（自动保存在本机）");
     render();
   }
 

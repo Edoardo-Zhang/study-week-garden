@@ -1,7 +1,7 @@
 {
   "name": "study-week-garden",
   "productName": "一周学习时间安排表",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "一周学习时间安排表 桌面版（离线可用）",
   "main": "main.js",
   "author": "Edoardo-Zhang",
