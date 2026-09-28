@@ -1,14 +1,24 @@
 'use strict';
 /**
  * 一周学习时间安排表 —— 桌面版主进程
- * 站点文件打包在 app/ 里，用 file:// 加载：完全离线可用，不依赖任何域名解析。
+ * 站点文件打包在 app/ 里，用自定义协议 app://bundle/ 加载：
+ *   · 完全离线可用，不依赖任何域名解析
+ *   · 自定义协议有真实 origin —— file:// 下 localStorage 关掉应用就丢，自动保存留不住
  */
-const { app, BrowserWindow, Menu, shell, dialog, screen } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, screen, protocol, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 const APP_TITLE = '一周学习时间安排表';
-const INDEX = path.join(__dirname, 'app', 'index.html');
+const APP_ROOT = path.join(__dirname, 'app');
+const APP_ORIGIN = 'app://bundle';
+const INDEX_URL = APP_ORIGIN + '/index.html';
+
+// 必须在 app ready 之前声明：standard + secure 才会被当成正常站点（有 origin、能持久化本地存储）
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
+]);
 
 let mainWindow = null;
 
@@ -116,7 +126,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(INDEX);
+  mainWindow.loadURL(INDEX_URL);
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -132,6 +142,18 @@ if (!app.requestSingleInstanceLock()) {
   app.setAppUserModelId('com.edoardo.studyweekgarden');
 
   app.whenReady().then(() => {
+    // app://bundle/<路径> → app/<路径>（只允许包内文件，挡住目录穿越）
+    protocol.handle('app', (request) => {
+      const url = new URL(request.url);
+      let rel = decodeURIComponent(url.pathname);
+      if (!rel || rel === '/') rel = '/index.html';
+      const target = path.normalize(path.join(APP_ROOT, rel));
+      if (!target.startsWith(APP_ROOT)) {
+        return new Response('forbidden', { status: 403, headers: { 'content-type': 'text/plain' } });
+      }
+      return net.fetch(pathToFileURL(target).toString());
+    });
+
     buildMenu();
     createWindow();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
