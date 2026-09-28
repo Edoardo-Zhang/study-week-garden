@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$Version = '1.0.0',
   [string]$Owner = 'Edoardo-Zhang',
   [string]$Repo  = 'study-week-garden',
@@ -64,9 +64,16 @@ foreach ($a in $assets) {
   Write-Host ('   结果: ' + $(if ($ok) { '成功' } else { '失败' }))
 }
 
-# 回读校验
-& curl.exe -s --http1.1 -o (Join-Path $env:TEMP 'rel2.json') -x $proxy --max-time 90 -H "Authorization: token $token" -H 'User-Agent: dsh' "https://api.github.com/repos/$Owner/$Repo/releases/tags/v$Version" | Out-Null
-$rel2 = Get-Content (Join-Path $env:TEMP 'rel2.json') -Raw | ConvertFrom-Json
+# 回读校验（先删临时文件：请求失败时会把上一次的旧结果读出来，制造"上传成功"的假象）
+$relJson2 = Join-Path $env:TEMP 'rel2.json'
+if (Test-Path $relJson2) { Remove-Item $relJson2 -Force }
+$rc = & curl.exe -s --http1.1 -o $relJson2 -w '%{http_code}' -x $proxy --max-time 90 -H "Authorization: token $token" -H 'User-Agent: dsh' "https://api.github.com/repos/$Owner/$Repo/releases/tags/v$Version"
+if (-not (Test-Path $relJson2)) { Write-Host ('[release] 回读失败（HTTP ' + ($rc -join '') + '），资产清单不可信'); exit 1 }
+$rel2 = Get-Content $relJson2 -Raw | ConvertFrom-Json
 Write-Host '[release] 线上资产：'
-$rel2.assets | ForEach-Object { '   {0,10:N1} MB  {1}  state={2}  {3}' -f ($_.size/1MB), $_.name, $_.state, $_.browser_download_url }
+$rel2.assets | ForEach-Object { '   {0,10:N1} MB  {1}  state={2}  digest={3}' -f ($_.size/1MB), $_.name, $_.state, $_.digest }
+# 有资产没传上去必须报错退出，否则"部分失败"会被当成成功
+$onlineNames = @($rel2.assets | ForEach-Object { $_.name })
+$missing = @($assets | Where-Object { $onlineNames -notcontains $_.Name } | ForEach-Object { $_.Name })
+if ($missing.Count -gt 0) { Write-Host ('[release] 缺少资产：' + ($missing -join ', ') + ' → 上传未完成'); exit 2 }
 Write-Host ('[release] 页面: ' + $rel2.html_url)

@@ -37,7 +37,7 @@ ELECTRON_BUILDER_BINARIES_MIRROR=https://registry.npmmirror.com/-/binary/electro
 ## 发布
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\release.ps1 -Version 1.0.0
+powershell -ExecutionPolicy Bypass -File tools\release.ps1 -Version 1.0.1
 ```
 
 会用 `git credential fill` 取本机已保存的 GitHub 凭据建 Release 并上传 `dist/` 里的两个产物，最后回读校验。
