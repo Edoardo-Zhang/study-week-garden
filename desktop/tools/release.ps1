@@ -42,11 +42,11 @@ $notes | Set-Content (Join-Path $env:TEMP 'release-notes.md') -Encoding utf8
 $bodyFile = Join-Path $env:TEMP 'release-body.json'
 $payload = @{ tag_name = ('v' + $Version); name = $Title; body = $notes; draft = $false; prerelease = $false } | ConvertTo-Json -Depth 4
 [IO.File]::WriteAllText($bodyFile, $payload, [Text.UTF8Encoding]::new($false))
-$code = & curl.exe -s -o (Join-Path $env:TEMP 'rel.json') -w '%{http_code}' -x $proxy --max-time 90 -X POST -H "Authorization: token $token" -H 'User-Agent: dsh' -H 'Accept: application/vnd.github+json' -d "@$bodyFile" "https://api.github.com/repos/$Owner/$Repo/releases"
+$code = & curl.exe -s --http1.1 -o (Join-Path $env:TEMP 'rel.json') -w '%{http_code}' -x $proxy --max-time 90 -X POST -H "Authorization: token $token" -H 'User-Agent: dsh' -H 'Accept: application/vnd.github+json' -d "@$bodyFile" "https://api.github.com/repos/$Owner/$Repo/releases"
 Write-Host ('[release] 创建 release -> HTTP ' + $code)
 if ($code -ne '201') {
   Write-Host '[release] 可能已存在，改为查询该 tag';
-  & curl.exe -s -o (Join-Path $env:TEMP 'rel.json') -x $proxy --max-time 60 -H "Authorization: token $token" -H 'User-Agent: dsh' "https://api.github.com/repos/$Owner/$Repo/releases/tags/v$Version" | Out-Null
+  & curl.exe -s --http1.1 -o (Join-Path $env:TEMP 'rel.json') -x $proxy --max-time 60 -H "Authorization: token $token" -H 'User-Agent: dsh' "https://api.github.com/repos/$Owner/$Repo/releases/tags/v$Version" | Out-Null
 }
 $rel = Get-Content (Join-Path $env:TEMP 'rel.json') -Raw | ConvertFrom-Json
 if (-not $rel.id) { Write-Host '[release] 拿不到 release id，终止'; Write-Host ($rel | ConvertTo-Json -Compress); exit 1 }
@@ -57,7 +57,7 @@ foreach ($a in $assets) {
   Write-Host ('[release] 上传 ' + $a.Name + ' …')
   $ok = $false
   for ($i = 1; $i -le 4; $i++) {
-    $up = & curl.exe -s -o (Join-Path $env:TEMP 'asset.json') -w '%{http_code}' -x $proxy --max-time 3600 -X POST -H "Authorization: token $token" -H 'User-Agent: dsh' -H 'Content-Type: application/octet-stream' --data-binary "@$($a.FullName)" "https://uploads.github.com/repos/$Owner/$Repo/releases/$($rel.id)/assets?name=$($a.Name)"
+    $up = & curl.exe -s --http1.1 -o (Join-Path $env:TEMP 'asset.json') -w '%{http_code}' -x $proxy --max-time 3600 -X POST -H "Authorization: token $token" -H 'User-Agent: dsh' -H 'Content-Type: application/octet-stream' --data-binary "@$($a.FullName)" "https://uploads.github.com/repos/$Owner/$Repo/releases/$($rel.id)/assets?name=$($a.Name)"
     Write-Host ('   尝试 ' + $i + ' -> HTTP ' + $up)
     if ($up -eq '201') { $ok = $true; break }
     Start-Sleep -Seconds 10
@@ -66,7 +66,7 @@ foreach ($a in $assets) {
 }
 
 # 回读校验
-& curl.exe -s -o (Join-Path $env:TEMP 'rel2.json') -x $proxy --max-time 90 -H "Authorization: token $token" -H 'User-Agent: dsh' "https://api.github.com/repos/$Owner/$Repo/releases/tags/v$Version" | Out-Null
+& curl.exe -s --http1.1 -o (Join-Path $env:TEMP 'rel2.json') -x $proxy --max-time 90 -H "Authorization: token $token" -H 'User-Agent: dsh' "https://api.github.com/repos/$Owner/$Repo/releases/tags/v$Version" | Out-Null
 $rel2 = Get-Content (Join-Path $env:TEMP 'rel2.json') -Raw | ConvertFrom-Json
 Write-Host '[release] 线上资产：'
 $rel2.assets | ForEach-Object { '   {0,10:N1} MB  {1}  state={2}  {3}' -f ($_.size/1MB), $_.name, $_.state, $_.browser_download_url }
