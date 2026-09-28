@@ -24,8 +24,8 @@ powershell -ExecutionPolicy Bypass -File tools\build.ps1
 
 产物在 `dist/`：
 
-- `study-week-garden-Setup-1.0.0.exe` —— NSIS 安装包（可选安装目录、建快捷方式）
-- `study-week-garden-1.0.0-win-x64.zip` —— 便携版（解压即用）
+- `study-week-garden-Setup-1.0.1.exe` —— NSIS 安装包（可选安装目录、建快捷方式）
+- `study-week-garden-1.0.1-win-x64.zip` —— 便携版（解压即用）
 
 国内构建依赖镜像（脚本里已设）：
 
