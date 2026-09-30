@@ -908,6 +908,34 @@
     return true;
   }
 
+  // 本机是否已经有一份自己的安排
+  function hasOwnState() {
+    var d = loadState();
+    return !!(d && Array.isArray(d.tasks) && d.tasks.length);
+  }
+
+  // 把一条分享链接应用到页面上：本机已有自己的安排就先只读预览，否则直接接管
+  function applyShared(payload) {
+    window.SWGShare.decode(payload).then(function (data) {
+      if (!normalizeState(data)) throw new Error("分享内容不可用");
+      if (hasOwnState()) {
+        preview = true;
+        showShareBar();
+        render();
+      } else {
+        render(); // 干净访客：直接接管，正常编辑
+        window.SWGShare.clearHash();
+        toast("已打开分享的安排，可以自由编辑（自动存本机）");
+      }
+    }).catch(function () {
+      var hadOwn = hasOwnState();
+      window.SWGShare.clearHash();
+      startOwn(loadState());
+      render();
+      toast(hadOwn ? "分享链接无法识别，已换回你自己的安排" : "分享链接无法识别，先自己排一份吧");
+    });
+  }
+
   function adoptShared() {
     preview = false;
     window.SWGShare.clearHash();
@@ -1006,6 +1034,17 @@
     linkScroll(el.gridTimes, el.gridDays);
     linkScroll(el.gridDays, el.gridTimes);
 
+    // 同一个标签页里点开别人的分享链接时，只有 # 片段变化、页面不会重新加载，这里兜住
+    window.addEventListener("hashchange", function () {
+      var payload = window.SWGShare ? window.SWGShare.readHash() : null;
+      if (!payload) return;
+      if (preview) {
+        toast("正在预览别的分享，先选「开始编辑这份」或「换回我自己的」");
+        return;
+      }
+      applyShared(payload);
+    });
+
     window.addEventListener("resize", debounce(function () {
       readCssConfig();
       renderTimes();
@@ -1062,34 +1101,14 @@
 
     bindEvents();
 
-    var ownData = loadState();
-    var hasOwn = !!(ownData && Array.isArray(ownData.tasks) && ownData.tasks.length);
+    // 链接里带着一份安排：解不开就当普通访问，绝不能让页面打不开
     var shared = window.SWGShare ? window.SWGShare.readHash() : null;
-
-    if (!shared) {
-      startOwn(ownData);
-      render();
+    if (shared) {
+      applyShared(shared);
       return;
     }
-
-    // 链接里带着一份安排：解不开就当普通访问，绝不能让页面打不开
-    window.SWGShare.decode(shared).then(function (data) {
-      if (!normalizeState(data)) throw new Error("分享内容不可用");
-      if (hasOwn) {
-        preview = true;
-        showShareBar();
-        render();
-      } else {
-        render(); // 干净访客：直接接管，正常编辑
-        window.SWGShare.clearHash();
-        toast("已打开分享的安排，可以自由编辑（自动存本机）");
-      }
-    }).catch(function () {
-      window.SWGShare.clearHash();
-      startOwn(ownData);
-      render();
-      toast(hasOwn ? "分享链接无法识别，已换回你自己的安排" : "分享链接无法识别，先自己排一份吧");
-    });
+    startOwn(loadState());
+    render();
   }
 
   function startOwn(ownData) {
