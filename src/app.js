@@ -54,12 +54,15 @@
   var pickedColor = COLORS[0].bg;
   var editingColor = COLORS[0].bg;
 
+  var preview = false; // true = 正在预览别人分享的安排：只读、不写本机
+
   /* --------------------------- 本机自动保存 --------------------------- */
 
   var STORE_KEY = "study-week-garden:v1";
   var saveWarned = false;
 
   function saveState() {
+    if (preview) return; // 预览别人的分享时不覆盖本机安排
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         v: 1,
@@ -96,9 +99,9 @@
     }
   }
 
-  function restoreState() {
-    var d = loadState();
-    if (!d) return false;
+  /** 校验并装载一份外部数据（本机存档或分享链接）；成功返回 true */
+  function normalizeState(d) {
+    if (!d || !Array.isArray(d.tasks)) return false;
 
     var restored = [];
     var maxSeq = 0;
@@ -125,6 +128,11 @@
     return true;
   }
 
+  /** 从本机存档恢复 */
+  function restoreState() {
+    return normalizeState(loadState());
+  }
+
 
   /* ------------------------------ DOM ------------------------------ */
 
@@ -145,6 +153,11 @@
     inputTask: $("inputTask"),
     inputDuration: $("inputDuration"),
     colorRow: $("colorRow"),
+    shareBar: $("shareBar"),
+    shareBarText: $("shareBarText"),
+    btnShare: $("btnShare"),
+    btnAdoptShare: $("btnAdoptShare"),
+    btnKeepMine: $("btnKeepMine"),
     modalMask: $("modalMask"),
     editTask: $("editTask"),
     editDuration: $("editDuration"),
@@ -393,11 +406,13 @@
     el.trayCount.textContent = String(pending);
     el.trayEmpty.hidden = pending > 0;
 
-    // 表格内与托盘内的滑块都要能拖动
-    var all = el.blocksLayer.querySelectorAll(".block");
-    for (var k = 0; k < all.length; k++) bindBlockEvents(all[k]);
-    var trayBlocks = el.trayList.querySelectorAll(".block");
-    for (var m = 0; m < trayBlocks.length; m++) bindBlockEvents(trayBlocks[m]);
+    // 表格内与托盘内的滑块都要能拖动；预览别人的分享时不给绑，免得改了却不落盘
+    if (!preview) {
+      var all = el.blocksLayer.querySelectorAll(".block");
+      for (var k = 0; k < all.length; k++) bindBlockEvents(all[k]);
+      var trayBlocks = el.trayList.querySelectorAll(".block");
+      for (var m = 0; m < trayBlocks.length; m++) bindBlockEvents(trayBlocks[m]);
+    }
 
     // 所有改动都会走到 render()，在这里统一落盘
     saveState();
@@ -811,10 +826,112 @@
     toast("已清空全部安排");
   }
 
+  /* --------------------------- 分享链接 --------------------------- */
+  // 方案：把整份安排压进链接的 # 片段（不经过任何服务器）。
+  // 代价是链接是"快照"——发出去之后再改，旧链接不会跟着变；任务名在链接里明文可见。
+
+  // 桌面版走 app:// 协议，拼出来的链接别人打不开，干脆不显示这个按钮
+  function shareSupported() {
+    return location.protocol === "http:" || location.protocol === "https:";
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea");
+    try {
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      if (ta.setSelectionRange) ta.setSelectionRange(0, text.length);
+      return document.execCommand("copy");
+    } catch (e) {
+      return false;
+    } finally {
+      if (ta.parentNode) ta.parentNode.removeChild(ta);
+    }
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () {
+        return true;
+      }, function () {
+        return legacyCopy(text);
+      });
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  function shareLink() {
+    if (!tasks.length) {
+      toast("还没有安排，先加几个任务再分享");
+      return;
+    }
+    if (!window.SWGShare) {
+      toast("分享组件没加载成功，刷新页面试试");
+      return;
+    }
+    window.SWGShare.encode({ seq: seq, tasks: tasks }).then(function (payload) {
+      var url = window.SWGShare.buildUrl(payload);
+      return copyText(url).then(function (ok) {
+        if (!ok) {
+          window.prompt("自动复制失败，请手动复制这条分享链接：", url);
+          return;
+        }
+        if (url.length > 2000) toast("链接已复制；内容较多，个别聊天软件可能截断");
+        else toast("分享链接已复制，发给别人就能看到这份安排");
+      });
+    }).catch(function () {
+      toast("生成分享链接失败，稍后再试");
+    });
+  }
+
+  // 预览态：本机已有自己的安排，又打开了别人的分享 —— 先只读看，别把原来的覆盖掉
+  function showShareBar() {
+    el.shareBar.hidden = false;
+    el.shareBarText.textContent =
+      "正在预览别人分享的安排（" + tasks.length + " 项），你自己的安排没有被改动";
+    document.body.classList.add("is-preview");
+  }
+
+  function hideShareBar() {
+    el.shareBar.hidden = true;
+    document.body.classList.remove("is-preview");
+  }
+
+  function guardPreview() {
+    if (!preview) return false;
+    toast("这是别人分享的安排，点上方「开始编辑这份」后再改");
+    return true;
+  }
+
+  function adoptShared() {
+    preview = false;
+    window.SWGShare.clearHash();
+    hideShareBar();
+    render(); // render 末尾会 saveState()，这份安排就此存进本机
+    toast("这份安排已存到本机，现在可以自由编辑");
+  }
+
+  function keepOwn() {
+    preview = false;
+    window.SWGShare.clearHash();
+    hideShareBar();
+    tasks = [];
+    seq = 1;
+    restoreState();
+    render();
+    toast(tasks.length ? "已换回你自己的安排" : "已换回空白安排");
+  }
+
   /* --------------------------- 事件绑定 --------------------------- */
 
   function bindEvents() {
     $("btnCreate").addEventListener("click", function () {
+      if (guardPreview()) return;
       if (el.creator.hidden) {
         openCreator();
       } else {
@@ -822,9 +939,26 @@
       }
     });
     $("btnCloseCreator").addEventListener("click", closeCreator);
-    $("btnCreateConfirm").addEventListener("click", confirmCreate);
-    $("btnDemo").addEventListener("click", loadDemo);
-    $("btnClear").addEventListener("click", clearAll);
+    $("btnCreateConfirm").addEventListener("click", function () {
+      if (guardPreview()) return;
+      confirmCreate();
+    });
+    $("btnDemo").addEventListener("click", function () {
+      if (guardPreview()) return;
+      loadDemo();
+    });
+    $("btnClear").addEventListener("click", function () {
+      if (guardPreview()) return;
+      clearAll();
+    });
+
+    if (shareSupported()) {
+      el.btnShare.addEventListener("click", shareLink);
+    } else {
+      el.btnShare.hidden = true; // 桌面版：分享链接没人能打开
+    }
+    el.btnAdoptShare.addEventListener("click", adoptShared);
+    el.btnKeepMine.addEventListener("click", keepOwn);
 
     el.inputTask.addEventListener("keydown", function (e) {
       if (e.key === "Enter") confirmCreate();
@@ -927,8 +1061,39 @@
     renderColorRow(el.colorRow, pickedColor, pickNew);
 
     bindEvents();
-    if (restoreState()) toast("已恢复上次的安排（自动保存在本机）");
-    render();
+
+    var ownData = loadState();
+    var hasOwn = !!(ownData && Array.isArray(ownData.tasks) && ownData.tasks.length);
+    var shared = window.SWGShare ? window.SWGShare.readHash() : null;
+
+    if (!shared) {
+      startOwn(ownData);
+      render();
+      return;
+    }
+
+    // 链接里带着一份安排：解不开就当普通访问，绝不能让页面打不开
+    window.SWGShare.decode(shared).then(function (data) {
+      if (!normalizeState(data)) throw new Error("分享内容不可用");
+      if (hasOwn) {
+        preview = true;
+        showShareBar();
+        render();
+      } else {
+        render(); // 干净访客：直接接管，正常编辑
+        window.SWGShare.clearHash();
+        toast("已打开分享的安排，可以自由编辑（自动存本机）");
+      }
+    }).catch(function () {
+      window.SWGShare.clearHash();
+      startOwn(ownData);
+      render();
+      toast(hasOwn ? "分享链接无法识别，已换回你自己的安排" : "分享链接无法识别，先自己排一份吧");
+    });
+  }
+
+  function startOwn(ownData) {
+    if (normalizeState(ownData)) toast("已恢复上次的安排（自动保存在本机）");
   }
 
   if (document.readyState === "loading") {

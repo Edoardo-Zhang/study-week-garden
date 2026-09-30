@@ -30,8 +30,18 @@
         </button>
         <button type="button" class="btn btn-ghost" id="btnDemo">示例安排</button>
         <button type="button" class="btn btn-ghost" id="btnClear">清空</button>
+        <button type="button" class="btn btn-ghost" id="btnShare">分享链接</button>
       </div>
     </header>
+
+    <!-- 分享预览条：本机已有自己的安排时，别人分享的链接先只读预览 -->
+    <section class="share-bar" id="shareBar" hidden>
+      <p class="share-bar-text" id="shareBarText"></p>
+      <div class="share-bar-actions">
+        <button type="button" class="btn btn-primary" id="btnAdoptShare">开始编辑这份</button>
+        <button type="button" class="btn btn-ghost" id="btnKeepMine">换回我自己的</button>
+      </div>
+    </section>
 
     <!-- 新建滑块面板 -->
     <section class="creator" id="creator" hidden>
@@ -95,7 +105,7 @@
           </div>
         </div>
       </div>
-      <p class="board-hint">提示：拖动滑块到别的天或别的时段即可调整安排；点击滑块可编辑任务与时长。安排会自动保存在本机，关掉再打开还在。</p>
+      <p class="board-hint">提示：拖动滑块到别的天或别的时段即可调整安排；点击滑块可编辑任务与时长。安排会自动保存在本机，关掉再打开还在；点右上角「分享链接」可以把这份安排发给别人。</p>
     </main>
   </div>
 
@@ -132,6 +142,7 @@
 
   <div class="toast" id="toast" hidden></div>
 
+  <script src="./src/share.js"></script>
   <script src="./src/app.js"></script>
 </body>
 </html>
