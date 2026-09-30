@@ -539,12 +539,16 @@
     ghost.style.left = e.clientX + "px";
     ghost.style.top = e.clientY + "px";
 
-    var hit = resolveTarget(e.clientX, e.clientY);
-    applyHoverHint(hit);
+    var hit = resolveTarget(e.clientX, e.clientY, drag);
+    applyHoverHint(hit, drag);
   }
 
-  /** 依据坐标解析出落点 { day, start } —— day = 0 表示托盘 */
-  function resolveTarget(clientX, clientY) {
+  /** 依据坐标解析出落点 { day, start } —— day = 0 表示托盘
+   *  必须显式传 session：松手时全局 drag 已经被置空，读 drag 会抛错导致"拖了没反应" */
+  function resolveTarget(clientX, clientY, session) {
+    var s = session || drag;
+    if (!s) return null;
+
     // 托盘
     var trayRect = el.tray.getBoundingClientRect();
     if (
@@ -553,7 +557,7 @@
       clientY >= trayRect.top &&
       clientY <= trayRect.bottom
     ) {
-      return { day: 0, start: drag.task.start };
+      return { day: 0, start: s.task.start };
     }
 
     // 表格
@@ -568,12 +572,12 @@
       var dayIdx = clamp(Math.floor((clientX - daysRect.left) / colW), 0, DAYS.length - 1);
 
       // 用抓取比例反推「滑块顶部」应在的位置，拖动时手感更自然
-      var blockH = (drag.task.duration / 60) * cfg.hourHeight;
-      var ghostTopY = clientY - drag.grabRatio * blockH;
+      var blockH = (s.task.duration / 60) * cfg.hourHeight;
+      var ghostTopY = clientY - s.grabRatio * blockH;
       // daysRect.top 是滚动容器视口的上边，需叠加 scrollTop 才是内容坐标
       var rawStart =
         cfg.startHour + (ghostTopY - daysRect.top + el.gridDays.scrollTop) / cfg.hourHeight;
-      var dur = drag.task.duration / 60;
+      var dur = s.task.duration / 60;
       var start = clamp(
         snapHour(rawStart),
         cfg.startHour,
@@ -586,7 +590,9 @@
     return null;
   }
 
-  function applyHoverHint(hit) {
+  function applyHoverHint(hit, session) {
+    var s = session || drag;
+    if (!s) return;
     // 清掉旧的 hover 态
     var hovers = el.gridDays.querySelectorAll(".hour-cell.is-hover");
     for (var i = 0; i < hovers.length; i++) hovers[i].classList.remove("is-hover");
@@ -601,7 +607,7 @@
     }
 
     // 高亮即将占用的时段
-    var dur = drag.task.duration / 60;
+    var dur = s.task.duration / 60;
     var col = el.gridDays.querySelector('.day-col[data-day="' + hit.day + '"]');
     if (!col) return;
 
@@ -637,7 +643,7 @@
       return;
     }
 
-    var hit = resolveTarget(e.clientX, e.clientY);
+    var hit = resolveTarget(e.clientX, e.clientY, session);
     var task = taskById(session.id);
     if (!task) return;
 
@@ -789,6 +795,30 @@
     closeEditModal();
     render();
     toast("已删除「" + t.name + "」");
+  }
+
+  /** 复制一份滑块：名称/时长/颜色照抄；已排好的会顺延到当天最近空档，待安排的就还在待安排区 */
+  function duplicateTask(id) {
+    var t = taskById(id);
+    if (!t) return null;
+
+    var copy = addTask(t.name, t.duration, t.color, 0, t.start);
+    if (t.day !== 0) placeTask(copy, t.day, t.start);
+
+    render();
+    toast(
+      copy.day === 0
+        ? "已复制「" + copy.name + "」到待安排"
+        : "已复制「" + copy.name + "」到" + DAYS[copy.day - 1] + " " + fmtTime(copy.start)
+    );
+    return copy;
+  }
+
+  function duplicateEditing() {
+    var t = taskById(editingId);
+    if (!t) return;
+    closeEditModal();
+    duplicateTask(t.id);
   }
 
   /* --------------------------- 示例 / 清空 --------------------------- */
@@ -999,6 +1029,7 @@
     $("btnCancelEdit").addEventListener("click", closeEditModal);
     $("btnSaveEdit").addEventListener("click", saveEdit);
     $("btnDelete").addEventListener("click", deleteEditing);
+    $("btnDuplicate").addEventListener("click", duplicateEditing);
 
     el.modalMask.addEventListener("click", function (e) {
       if (e.target === el.modalMask) closeEditModal();

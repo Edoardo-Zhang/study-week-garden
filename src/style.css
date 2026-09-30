@@ -811,6 +811,13 @@ body.is-preview .block {
   border-top: 1px solid var(--line);
 }
 
+.modal-foot-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .modal-foot-right {
   display: flex;
   gap: 10px;
